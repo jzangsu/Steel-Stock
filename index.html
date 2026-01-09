@@ -50,8 +50,8 @@
             <button onclick="switchTab('inventory')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all" id="nav-inventory">
                 <i class="fa-solid fa-layer-group w-5"></i> <span class="font-medium">통합 재고 현황</span>
             </button>
-            <button onclick="switchTab('rules')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all" id="nav-rules">
-                <i class="fa-solid fa-tags w-5"></i> <span class="font-medium">업체별 아이템 리스트</span>
+            <button onclick="switchTab('master')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all" id="nav-master">
+                <i class="fa-solid fa-list-check w-5"></i> <span class="font-medium">업체별 아이템 리스트</span>
             </button>
             <button onclick="switchTab('upload')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all" id="nav-upload">
                 <i class="fa-solid fa-file-excel w-5"></i> <span class="font-medium">엑셀 일괄 등록</span>
@@ -162,11 +162,11 @@
                             <thead class="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th class="px-6 py-3 whitespace-nowrap">Vendor</th>
+                                    <th class="px-6 py-3 whitespace-nowrap">CODE</th>
                                     <th class="px-6 py-3 whitespace-nowrap">품명 (Product)</th>
                                     <th class="px-6 py-3 whitespace-nowrap">강종 (Spec)</th>
                                     <th class="px-6 py-3 whitespace-nowrap">두께 (T)</th>
                                     <th class="px-6 py-3 whitespace-nowrap">폭 (W)</th>
-                                    <th class="px-6 py-3 whitespace-nowrap">길이 (L)</th>
                                     <th class="px-6 py-3 text-right whitespace-nowrap">중량 (kg)</th>
                                     <th class="px-6 py-3 whitespace-nowrap">창고 (위치)</th>
                                     <th class="px-6 py-3 text-center whitespace-nowrap">관리</th>
@@ -183,83 +183,40 @@
                 </div>
             </div>
 
-            <!-- 3. Vendor Item List (Rules) Section -->
-            <div id="view-rules" class="hidden fade-in max-w-6xl mx-auto h-full flex flex-col">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
-                    <h3 class="text-xl font-bold text-slate-800 mb-2">업체별 자동 분류 기준 (System Rules)</h3>
-                    <p class="text-sm text-slate-500 mb-4">엑셀 업로드 시 아래 조건에 따라 자동으로 업체가 배정됩니다.</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <!-- Rule Cards -->
-                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-blue-500 bg-blue-50/50">
-                            <div class="flex justify-between items-start mb-2">
-                                <h4 class="font-bold text-blue-900">INZI</h4>
-                                <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold">Rule 1</span>
-                            </div>
-                            <ul class="text-sm text-slate-600 space-y-1">
-                                <li>• 품명에 <strong>'SPHC'</strong> 포함</li>
-                                <li>• 또는 두께(T)가 <strong>2.0mm 이상</strong></li>
-                            </ul>
+            <!-- 3. Master Item List (Rules) Section -->
+            <div id="view-master" class="hidden fade-in max-w-6xl mx-auto h-full flex flex-col">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-1">업체별 아이템 리스트 (Master Data)</h3>
+                            <p class="text-sm text-slate-500">
+                                엑셀 업로드 시 <strong>CODE</strong>를 기준으로 우선 분류하며, 등록되지 않은 코드는 Spec/두께 등 보조 규칙을 따릅니다.
+                            </p>
                         </div>
-
-                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-orange-500 bg-orange-50/50">
-                            <div class="flex justify-between items-start mb-2">
-                                <h4 class="font-bold text-orange-900">SHINHEUNG</h4>
-                                <span class="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold">Rule 2</span>
-                            </div>
-                            <ul class="text-sm text-slate-600 space-y-1">
-                                <li>• 품명 또는 강종에 <strong>'GI'</strong> 포함</li>
-                            </ul>
-                        </div>
-
-                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-emerald-500 bg-emerald-50/50">
-                            <div class="flex justify-between items-start mb-2">
-                                <h4 class="font-bold text-emerald-900">DAEYEONG</h4>
-                                <span class="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded font-bold">Rule 3</span>
-                            </div>
-                            <ul class="text-sm text-slate-600 space-y-1">
-                                <li>• 품명 또는 강종에 <strong>'CR'</strong> 포함</li>
-                            </ul>
-                        </div>
-
-                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-purple-500 bg-purple-50/50">
-                            <div class="flex justify-between items-start mb-2">
-                                <h4 class="font-bold text-purple-900">DA</h4>
-                                <span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded font-bold">Rule 4</span>
-                            </div>
-                            <ul class="text-sm text-slate-600 space-y-1">
-                                <li>• 품명 또는 강종에 <strong>'PO'</strong> 포함</li>
-                            </ul>
-                        </div>
-
-                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-slate-500 bg-slate-50">
-                            <div class="flex justify-between items-start mb-2">
-                                <h4 class="font-bold text-slate-900">ETD</h4>
-                                <span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded font-bold">Default</span>
-                            </div>
-                            <ul class="text-sm text-slate-600 space-y-1">
-                                <li>• 위 조건에 해당하지 않는 모든 자재</li>
-                            </ul>
+                        <div class="relative">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="master-search" onkeyup="renderMasterTable()" placeholder="Code, 업체명 검색" class="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500">
                         </div>
                     </div>
-                </div>
 
-                <!-- Classified Items Summary -->
-                <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 overflow-hidden flex flex-col">
-                    <h3 class="text-lg font-bold text-slate-800 mb-4">현재 분류된 아이템 리스트 (Summary)</h3>
-                    <div class="overflow-auto flex-1">
+                    <div class="flex-1 overflow-auto border rounded-lg border-slate-200">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0">
+                            <thead class="bg-slate-50 text-slate-600 font-semibold sticky top-0">
                                 <tr>
-                                    <th class="px-6 py-3">업체명</th>
-                                    <th class="px-6 py-3">주요 품목/강종</th>
-                                    <th class="px-6 py-3 text-right">등록된 수량</th>
+                                    <th class="px-6 py-3 w-32">CODE</th>
+                                    <th class="px-6 py-3 w-32">Vendor</th>
+                                    <th class="px-6 py-3">강종/품목 (Reference)</th>
+                                    <th class="px-6 py-3 text-right">분류 우선순위</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100" id="rules-summary-table">
+                            <tbody class="divide-y divide-slate-100" id="master-table-body">
                                 <!-- Populated by JS -->
                             </tbody>
                         </table>
+                    </div>
+                    <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-800">
+                        <i class="fa-solid fa-circle-info mr-2"></i>
+                        현재 시스템에는 <strong>분석된 주요 아이템 리스트</strong>가 탑재되어 있습니다. 리스트에 없는 신규 자재는 엑셀 업로드 시 강종/두께 로직에 의해 자동 분류됩니다.
                     </div>
                 </div>
             </div>
@@ -272,7 +229,7 @@
                             <i class="fa-solid fa-file-import text-blue-600"></i> 엑셀 재고 등록
                         </h3>
                         <p class="text-sm text-slate-500 mt-2">
-                            회사 양식(01JAN2025.xlsx)을 업로드하면 시스템이 <strong>헤더를 자동 인식</strong>하여 등록합니다.
+                            회사 양식(01JAN2025 등)을 업로드하면 <strong>CODE를 우선 분석</strong>하여 업체를 분류합니다.
                         </p>
                     </div>
                     
@@ -280,7 +237,7 @@
                         <div class="flex items-start gap-4">
                             <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold flex-shrink-0">1</div>
                             <div class="flex-1 w-full">
-                                <h4 class="font-bold text-slate-700 mb-2">파일 업로드 및 자동 분류</h4>
+                                <h4 class="font-bold text-slate-700 mb-2">파일 업로드 및 고속 처리</h4>
                                 <div class="w-full border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer relative" id="drop-zone">
                                     <input type="file" id="excel-input" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
                                     <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-300 mb-3" id="upload-icon"></i>
@@ -313,6 +270,49 @@
         window.userId = null;
         window.inventoryData = [];
         let unsubscribe = null;
+
+        // --- MASTER DATA (Extracted from provided files) ---
+        // This is the "Item List" managed by the system
+        const MASTER_ITEM_LIST = [
+            // INZI (IZ)
+            { code: "BN01-01152A", vendor: "INZI", desc: "EGI 0.45" },
+            { code: "BN01-00971A", vendor: "INZI", desc: "EGI 0.50" },
+            { code: "BN01-01153A", vendor: "INZI", desc: "EGI 0.50" },
+            { code: "BN01-00973A", vendor: "INZI", desc: "EGI 0.60" },
+            { code: "IZ01-000304", vendor: "INZI", desc: "EGI 0.80" },
+            { code: "BN01-00965A", vendor: "INZI", desc: "EGI 0.80" },
+            { code: "BN01-00966A", vendor: "INZI", desc: "EGI 0.80" },
+            { code: "IZ01-000305", vendor: "INZI", desc: "EGI 0.80" },
+            { code: "BN01-01126A", vendor: "INZI", desc: "EGI 1.0" },
+            { code: "BN01-00968A", vendor: "INZI", desc: "EGI 1.0" },
+            { code: "IZ01-000369", vendor: "INZI", desc: "COLOR/SATIN BLACK 0.6" },
+            { code: "IZ01-000435", vendor: "INZI", desc: "COLOR/SATIN BLACK 0.6" },
+
+            // SHINHEUNG (SH)
+            { code: "BN01-000420", vendor: "SHINHEUNG", desc: "EGI 0.45" },
+            { code: "BN01-000426", vendor: "SHINHEUNG", desc: "EGI 0.5" },
+            { code: "BN01-000429", vendor: "SHINHEUNG", desc: "EGI 0.5" },
+            { code: "BN01-000432", vendor: "SHINHEUNG", desc: "EGI 0.5" },
+            { code: "BN01-000141", vendor: "SHINHEUNG", desc: "EGI 0.5" },
+            { code: "BN01-000340", vendor: "SHINHEUNG", desc: "EGI 0.6" },
+            { code: "BN01-000437", vendor: "SHINHEUNG", desc: "EGI 1.0" },
+            { code: "BN01-000281", vendor: "SHINHEUNG", desc: "EGI 1.0" },
+            { code: "BN01-000320", vendor: "SHINHEUNG", desc: "EGI 1.0" },
+            { code: "BN01-000128", vendor: "SHINHEUNG", desc: "EGI 0.8" },
+            { code: "BN01-000416", vendor: "SHINHEUNG", desc: "EGI 1.0" },
+            { code: "BN01-000130", vendor: "SHINHEUNG", desc: "EGI 1.0" },
+
+            // DAEYEONG (DAEYEONG)
+            { code: "BN01-00969A", vendor: "DAEYEONG", desc: "EGI 0.45" },
+            { code: "BN01-00715A", vendor: "DAEYEONG", desc: "EGI 0.5" },
+            { code: "BN01-00963A", vendor: "DAEYEONG", desc: "EGI 0.5" },
+            { code: "BN01-00964A", vendor: "DAEYEONG", desc: "EGI 0.5" },
+            { code: "BN01-01118A", vendor: "DAEYEONG", desc: "EGI 0.5" },
+            { code: "BN01-00970A", vendor: "DAEYEONG", desc: "EGI 0.5" },
+            
+            // Common/Shared (Logic will default to one, or use as fallback)
+            { code: "AA13T2335", vendor: "ETD", desc: "ALCOSTA" }, // Assuming ETD for general
+        ];
 
         // [IMPORTANT] Replace with your actual Firebase Config
         const firebaseConfig = {
@@ -362,7 +362,6 @@
                 window.inventoryData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 
                 updateDashboard();
-                updateRulesSummary();
                 renderTable(); 
             }, (error) => {
                 console.error("Data fetch error:", error);
@@ -377,7 +376,7 @@
             const titles = {
                 'dashboard': '대시보드',
                 'inventory': '통합 재고 현황',
-                'rules': '업체별 아이템 리스트',
+                'master': '업체별 아이템 리스트',
                 'upload': '엑셀 일괄 등록'
             };
             document.getElementById('page-title').innerText = titles[tabName];
@@ -391,7 +390,7 @@
             activeNav.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
 
             if(tabName === 'inventory') renderTable();
-            if(tabName === 'rules') updateRulesSummary();
+            if(tabName === 'master') renderMasterTable();
         }
 
         window.currentVendorFilter = 'ALL';
@@ -415,7 +414,7 @@
             
             let filtered = window.inventoryData.filter(item => {
                 if (window.currentVendorFilter !== 'ALL' && item.vendor !== window.currentVendorFilter) return false;
-                const searchStr = `${item.product} ${item.spec} ${item.location}`.toLowerCase();
+                const searchStr = `${item.code} ${item.product} ${item.spec} ${item.location}`.toLowerCase();
                 if (searchInput && !searchStr.includes(searchInput)) return false;
                 return true;
             });
@@ -432,11 +431,11 @@
                     <td class="px-6 py-3 font-bold text-xs">
                         <span class="px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">${item.vendor}</span>
                     </td>
+                    <td class="px-6 py-3 text-slate-600 text-xs font-mono">${item.code || '-'}</td>
                     <td class="px-6 py-3 font-medium text-slate-800">${item.product || '-'}</td>
                     <td class="px-6 py-3 text-slate-600">${item.spec || '-'}</td>
                     <td class="px-6 py-3 text-slate-600">${item.thickness || 0}</td>
                     <td class="px-6 py-3 text-slate-600">${item.width || 0}</td>
-                    <td class="px-6 py-3 text-slate-600">${item.length || 0}</td>
                     <td class="px-6 py-3 text-right font-mono font-bold text-slate-700">${Number(item.weight).toLocaleString()}</td>
                     <td class="px-6 py-3 text-center text-xs text-slate-500 bg-slate-50 rounded mx-2">${item.location || '미지정'}</td>
                     <td class="px-6 py-3 text-center">
@@ -446,31 +445,23 @@
             `).join('');
         }
 
-        window.updateRulesSummary = function() {
-            const vendors = ['INZI', 'SHINHEUNG', 'DAEYEONG', 'DA', 'ETD'];
-            const summaryBody = document.getElementById('rules-summary-table');
+        window.renderMasterTable = function() {
+            const tbody = document.getElementById('master-table-body');
+            const searchInput = document.getElementById('master-search').value.toLowerCase();
             
-            // Analyze existing data
-            const stats = {};
-            vendors.forEach(v => stats[v] = { count: 0, specs: new Set() });
-            
-            window.inventoryData.forEach(item => {
-                const v = item.vendor && vendors.includes(item.vendor) ? item.vendor : 'ETD';
-                if(stats[v]) {
-                    stats[v].count++;
-                    if(item.spec) stats[v].specs.add(item.spec);
-                }
-            });
+            const filtered = MASTER_ITEM_LIST.filter(item => 
+                item.code.toLowerCase().includes(searchInput) || 
+                item.vendor.toLowerCase().includes(searchInput)
+            );
 
-            summaryBody.innerHTML = vendors.map(v => {
-                const specList = Array.from(stats[v].specs).slice(0, 3).join(', ') + (stats[v].specs.size > 3 ? '...' : '');
-                return `
-                <tr class="border-b border-slate-50">
-                    <td class="px-6 py-4 font-bold text-slate-700">${v}</td>
-                    <td class="px-6 py-4 text-slate-500 text-xs">${specList || '-'}</td>
-                    <td class="px-6 py-4 text-right font-mono">${stats[v].count.toLocaleString()}</td>
-                </tr>`;
-            }).join('');
+            tbody.innerHTML = filtered.map(item => `
+                <tr class="hover:bg-slate-50 border-b border-slate-50">
+                    <td class="px-6 py-3 font-mono font-bold text-blue-600">${item.code}</td>
+                    <td class="px-6 py-3 font-bold text-slate-700">${item.vendor}</td>
+                    <td class="px-6 py-3 text-slate-600">${item.desc}</td>
+                    <td class="px-6 py-3 text-right text-xs text-slate-400">High (Code Match)</td>
+                </tr>
+            `).join('');
         }
 
         window.deleteItem = async function(id) {
@@ -516,20 +507,31 @@
             document.getElementById('dashboard-vendor-table').innerHTML = vendorTableHTML;
         }
 
-        // --- Logic: Determine Vendor ---
+        // --- Logic: Determine Vendor (Enhanced) ---
         function determineVendor(row) {
-            // Rule Logic based on User Request
+            const code = (row.code || '').trim().toUpperCase();
+            
+            // 1. Check Master List (Exact Code Match)
+            const masterMatch = MASTER_ITEM_LIST.find(m => m.code === code);
+            if (masterMatch) {
+                return masterMatch.vendor;
+            }
+
+            // 2. Fallback Logic (Heuristics based on Spec/Thick/Product)
             const product = (row.product || '').toUpperCase();
             const spec = (row.spec || '').toUpperCase();
             const thickness = Number(row.thickness) || 0;
             
-            // 1. INZI: SPHC or T >= 2.0
+            // INZI
             if (product.includes('SPHC') || thickness >= 2.0) return 'INZI';
-            // 2. SHINHEUNG: GI
+            
+            // SHINHEUNG
             if (product.includes('GI') || spec.includes('GI')) return 'SHINHEUNG';
-            // 3. DAEYEONG: CR
+            
+            // DAEYEONG
             if (product.includes('CR') || spec.includes('CR')) return 'DAEYEONG';
-            // 4. DA: PO
+            
+            // DA
             if (product.includes('PO') || spec.includes('PO')) return 'DA';
             
             return 'ETD';
@@ -553,8 +555,6 @@
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
                     
-                    // Convert to JSON (Header is typically row 2 based on provided file snippet "NO, 일자, ...")
-                    // We try to find the header row by looking for "품명" or "제품번호"
                     const rawData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
                     
                     let headerRowIndex = -1;
@@ -567,23 +567,19 @@
                     }
 
                     if (headerRowIndex === -1) {
-                        throw new Error("헤더를 찾을 수 없습니다. (필수 컬럼: 품명, 두께 T 등)");
+                        throw new Error("헤더를 찾을 수 없습니다. (필수 컬럼: 품명, 두께 T, CODE/제품번호 등)");
                     }
 
                     logEl.innerHTML += `<div>헤더 발견: ${headerRowIndex + 1}행</div>`;
 
-                    // Create structured JSON
                     const headers = rawData[headerRowIndex];
                     const rows = rawData.slice(headerRowIndex + 1);
                     const batchSize = 500; 
-                    let batch = writeBatch(window.db);
-                    let count = 0;
-                    let ops = 0;
-
-                    // Helper to find column index by keyword
-                    const getIdx = (keywords) => headers.findIndex(h => keywords.some(k => (h||'').toString().includes(k)));
+                    
+                    const getIdx = (keywords) => headers.findIndex(h => keywords.some(k => (h||'').toString().toUpperCase().includes(k)));
 
                     const idxProduct = getIdx(['품명']);
+                    const idxCode = getIdx(['제품번호', 'CODE', 'ERP']); // Added Code Search
                     const idxSpec = getIdx(['강종']);
                     const idxThick = getIdx(['두께']);
                     const idxWidth = getIdx(['폭']);
@@ -591,10 +587,13 @@
                     const idxWeight = getIdx(['중량']);
                     const idxLocation = getIdx(['창고', '위치']);
 
+                    // 1. Prepare data in memory
+                    const preparedItems = [];
                     for(let row of rows) {
-                        if(!row[idxProduct] && !row[idxSpec]) continue; // Skip empty rows
+                        if(!row[idxProduct] && !row[idxSpec]) continue;
 
                         const item = {
+                            code: idxCode > -1 ? (row[idxCode] || '') : '',
                             product: row[idxProduct] || '',
                             spec: row[idxSpec] || '',
                             thickness: row[idxThick] || 0,
@@ -606,24 +605,47 @@
                         };
 
                         item.vendor = determineVendor(item);
-                        
-                        const docRef = doc(collection(window.db, 'artifacts', window.appId, 'public', 'data', 'inventory'));
-                        batch.set(docRef, item);
-                        count++;
-                        ops++;
-
-                        if (ops >= batchSize) {
-                            await batch.commit();
-                            batch = writeBatch(window.db);
-                            ops = 0;
-                            logEl.innerHTML += `<div>${count}건 처리 중...</div>`;
-                        }
+                        preparedItems.push(item);
                     }
 
-                    if (ops > 0) await batch.commit();
+                    // 2. Parallel Batch Processing
+                    const totalItems = preparedItems.length;
+                    const parallelLimit = 10;
+                    const chunkSize = batchSize * parallelLimit;
                     
-                    logEl.innerHTML += `<div class="text-green-600 font-bold">완료: 총 ${count}건 등록됨</div>`;
-                    alert(`${count}건의 재고가 성공적으로 등록되었습니다.`);
+                    logEl.innerHTML += `<div>총 ${totalItems}건 데이터 준비 완료. 고속 업로드 시작...</div>`;
+
+                    for (let i = 0; i < totalItems; i += chunkSize) {
+                        const promises = [];
+                        
+                        for (let j = 0; j < parallelLimit; j++) {
+                            const start = i + (j * batchSize);
+                            const end = Math.min(start + batchSize, totalItems);
+                            
+                            if (start >= totalItems) break;
+
+                            const batch = writeBatch(window.db);
+                            const chunk = preparedItems.slice(start, end);
+                            
+                            chunk.forEach(item => {
+                                const docRef = doc(collection(window.db, 'artifacts', window.appId, 'public', 'data', 'inventory'));
+                                batch.set(docRef, item);
+                            });
+
+                            promises.push(batch.commit());
+                        }
+
+                        await Promise.all(promises);
+                        
+                        const processed = Math.min(i + chunkSize, totalItems);
+                        const pTag = document.createElement('div');
+                        pTag.textContent = `${processed} / ${totalItems} 처리 완료...`;
+                        logEl.appendChild(pTag);
+                        logEl.scrollTop = logEl.scrollHeight;
+                    }
+                    
+                    logEl.innerHTML += `<div class="text-green-600 font-bold">완료: 총 ${totalItems}건 등록됨</div>`;
+                    alert(`${totalItems}건의 재고가 성공적으로 등록되었습니다.`);
                     
                     setTimeout(() => {
                          document.getElementById('upload-text').innerText = "엑셀 파일을 이곳에 드래그하거나 클릭하세요";
@@ -646,6 +668,7 @@
         window.onload = function() {
             initFirebase();
             switchTab('dashboard');
+            renderMasterTable();
         }
     </script>
 </body>
