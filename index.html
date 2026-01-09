@@ -3,244 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daewoong S&T - Steel Stock Manager</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <title>Daewoong S&T Inventory System</title>
+    
+    <!-- React & Tailwind -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Excel Processing Library (SheetJS) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; }
-        .sidebar-bg { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f3f4f6; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(229, 231, 235, 0.5); }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
+        // --- Firebase Configuration & Global Variables ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'daewoong-snt-prod';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        if (firebaseConfig) {
+            firebase.initializeApp(firebaseConfig);
+        } else {
+            console.error("Firebase config not found.");
+        }
+
+        const db = firebase.firestore();
+        const auth = firebase.auth();
         const { useState, useEffect, useMemo } = React;
 
-        // 아이콘 대신 이모지를 사용하여 충돌 방지
-        const Icon = ({ name }) => {
-            const icons = {
-                'dashboard': '📊',
-                'list': '📦',
-                'upload': '📤',
-                'search': '🔍',
-                'menu': '🍔'
-            };
-            return <span className="text-lg mr-2">{icons[name] || ''}</span>;
+        // --- Lucide Icons ---
+        const { 
+            LayoutDashboard, Upload, Warehouse, Plane, LogOut, 
+            Search, FileSpreadsheet, RefreshCw, Trash2, Tag, 
+            Filter, ArrowRightLeft, Boxes, Menu, X
+        } = lucide;
+
+        // --- Helper Functions ---
+        
+        // 원코일 자동 분류 로직 (예시: 폭과 두께에 따라 등급 분류)
+        const classifyRawCoil = (width, thickness) => {
+            const w = parseFloat(width);
+            const t = parseFloat(thickness);
+            
+            if (isNaN(w) || isNaN(t)) return "미분류";
+
+            // 예시 로직: 광폭(1219 이상) vs 표준
+            if (w >= 1219) return "광폭(Wide)";
+            if (w < 1219 && w >= 1000) return "표준(Std)";
+            return "협폭(Narrow)";
         };
 
-        // 초기 샘플 데이터
-        const INITIAL_DATA = [
-            { id: 1, client: '삼성전자', type: '원코일', spec: 'GI', t: 1.2, w: 1219, l: 0, weight: 15000, location: 'A-1' },
-            { id: 2, client: 'LG전자', type: '스켈프', spec: 'EGI', t: 0.8, w: 500, l: 0, weight: 5000, location: 'B-2' },
-            { id: 3, client: '삼성전자', type: '시트', spec: 'HGI', t: 2.0, w: 1000, l: 2000, weight: 2000, location: 'C-1' },
-        ];
+        const formatNumber = (num) => new Intl.NumberFormat('ko-KR').format(num);
 
-        const App = () => {
-            const [inventory, setInventory] = useState(INITIAL_DATA);
-            const [view, setView] = useState('dashboard'); 
-            const [selectedClient, setSelectedClient] = useState('ALL');
+        // --- Main Component ---
+        function App() {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('dashboard'); // dashboard, inventory, upload, partners
+            const [inventory, setInventory] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [uploadLog, setUploadLog] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
+            const [filterType, setFilterType] = useState('All');
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-            const clients = useMemo(() => ['ALL', ...new Set(inventory.map(item => item.client))], [inventory]);
+            // --- Auth & Data Fetching ---
+            useEffect(() => {
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await auth.signInWithCustomToken(__initial_auth_token);
+                    } else {
+                        await auth.signInAnonymously();
+                    }
+                };
+                initAuth();
 
-            const filteredData = useMemo(() => {
-                return inventory.filter(item => {
-                    const matchClient = selectedClient === 'ALL' || item.client === selectedClient;
-                    const matchSearch = item.spec.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                      item.type.includes(searchTerm);
-                    return matchClient && matchSearch;
+                const unsubscribeAuth = auth.onAuthStateChanged((u) => {
+                    setUser(u);
+                    if (!u) setLoading(false);
                 });
-            }, [inventory, selectedClient, searchTerm]);
+                return () => unsubscribeAuth();
+            }, []);
 
-            const stats = useMemo(() => {
-                const totalWeight = filteredData.reduce((acc, cur) => acc + cur.weight, 0);
-                const byType = { '원코일': 0, '스켈프': 0, '시트': 0, '미분류': 0 };
-                filteredData.forEach(item => {
-                    const t = byType[item.type] !== undefined ? item.type : '미분류';
-                    byType[t] += item.weight;
-                });
-                return { totalWeight, byType };
-            }, [filteredData]);
+            useEffect(() => {
+                if (!user) return;
+                
+                // Firestore: Public Data (Shared Inventory)
+                const unsubscribeData = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('inventory')
+                    .orderBy('entryDate', 'desc')
+                    .onSnapshot((snapshot) => {
+                        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        setInventory(items);
+                        setLoading(false);
+                    }, (error) => {
+                        console.error("Data fetch error:", error);
+                        setLoading(false);
+                    });
 
-            // 엑셀 업로드 핸들러 (안정성 강화)
-            const handleFileUpload = (e) => {
+                return () => unsubscribeData();
+            }, [user]);
+
+            // --- Handlers ---
+
+            const handleFileUpload = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
 
                 const reader = new FileReader();
-                reader.onload = (evt) => {
+                reader.onload = async (evt) => {
                     try {
-                        const data = evt.target.result;
-                        const wb = XLSX.read(data, { type: 'array' });
-                        const wsname = wb.SheetNames[0];
-                        const ws = wb.Sheets[wsname];
-                        const jsonData = XLSX.utils.sheet_to_json(ws);
+                        const bstr = evt.target.result;
+                        const workbook = XLSX.read(bstr, { type: 'binary' });
+                        const wsname = workbook.SheetNames[0];
+                        const ws = workbook.Sheets[wsname];
+                        const data = XLSX.utils.sheet_to_json(ws);
 
-                        const processedData = jsonData.map((row, idx) => {
-                            // 엑셀 컬럼명 매칭 (대소문자 유연하게 대응)
-                            const getVal = (keys) => {
-                                for (let k of keys) if (row[k] !== undefined) return row[k];
-                                return null;
-                            };
+                        const batch = db.batch();
+                        let count = 0;
+                        const newLogs = [];
 
-                            const w = Number(getVal(['Width', 'W', 'width', 'w']) || 0);
-                            const l = Number(getVal(['Length', 'L', 'length', 'l']) || 0);
-                            const t = Number(getVal(['Thickness', 'T', 'thickness', 't']) || 0);
-                            const weight = Number(getVal(['Weight', 'weight', '중량']) || 0);
-                            const client = getVal(['Client', 'Vendor', '매입처', 'client']) || '미지정';
-                            const spec = getVal(['Spec', 'Specification', '강종', 'spec']) || 'No Spec';
-                            const location = getVal(['Location', '위치', 'location']) || '입고대기';
+                        data.forEach((row) => {
+                            // 엑셀 컬럼 매핑 (사용자가 엑셀 헤더를 이렇게 작성했다고 가정)
+                            // 필수: 품명, 강종, 폭, 두께, 길이, 중량, 업체명
+                            const type = row['품명'] || row['Type'] || 'Sheet';
+                            const spec = row['강종'] || row['Spec'] || 'CQ';
+                            const width = row['폭'] || row['Width'] || 0;
+                            const thickness = row['두께'] || row['Thickness'] || 0;
+                            const length = row['길이'] || row['Length'] || 0; // Coil인 경우 0일 수 있음
+                            const weight = row['중량'] || row['Weight'] || 0;
+                            const company = row['업체명'] || row['Company'] || '미지정';
+                            const coilNo = row['CoilNo'] || row['관리번호'] || `DST-${Date.now()}-${Math.floor(Math.random()*1000)}`;
 
-                            let type = '미분류';
-                            if (l > 0) type = '시트';
-                            else if (w >= 600) type = '원코일'; // 기준: 폭 600mm 이상
-                            else type = '스켈프';
+                            let category = '';
+                            
+                            // 3. 재고 분류 로직
+                            if (type.includes('Coil') || type.includes('코일')) {
+                                category = classifyRawCoil(width, thickness);
+                            } else if (type.includes('Skelp') || type.includes('스켈프')) {
+                                category = 'Skelp';
+                            } else {
+                                category = 'Sheet/Plate';
+                            }
 
-                            return {
-                                id: Date.now() + idx,
-                                client, type, spec, t, w, l, weight, location
-                            };
+                            const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('inventory').doc();
+                            batch.set(docRef, {
+                                type: type,
+                                spec: spec,
+                                width: width,
+                                thickness: thickness,
+                                length: length,
+                                weight: weight,
+                                company: company,
+                                coilNo: coilNo,
+                                category: category, // 자동 분류된 값
+                                entryDate: new Date().toISOString(),
+                                createdBy: user.uid
+                            });
+                            count++;
                         });
 
-                        setInventory(prev => [...processedData, ...prev]);
-                        alert(`${processedData.length}건 업로드 완료!`);
+                        await batch.commit();
+                        setUploadLog(prev => [`${count}건의 데이터가 성공적으로 업로드 및 분류되었습니다.`, ...prev]);
+                        alert(`${count}건 업로드 완료`);
                     } catch (error) {
-                        console.error(error);
-                        alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
+                        console.error("Upload Error:", error);
+                        alert("엑셀 처리 중 오류가 발생했습니다. 형식을 확인해주세요.");
                     }
                 };
-                reader.readAsArrayBuffer(file);
+                reader.readAsBinaryString(file);
             };
 
+            const handleDelete = async (id) => {
+                if(!confirm("정말 삭제하시겠습니까?")) return;
+                try {
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('inventory').doc(id).delete();
+                } catch(err) {
+                    console.error(err);
+                }
+            };
+
+            // --- Derived Data ---
+            
+            const filteredInventory = useMemo(() => {
+                return inventory.filter(item => {
+                    const matchesSearch = 
+                        (item.company && item.company.includes(searchTerm)) || 
+                        (item.spec && item.spec.includes(searchTerm)) ||
+                        (item.coilNo && item.coilNo.includes(searchTerm));
+                    const matchesType = filterType === 'All' ? true : 
+                                        filterType === 'Coil' ? (item.type.includes('Coil') || item.type.includes('코일')) :
+                                        filterType === 'Sheet' ? (item.type.includes('Sheet') || item.type.includes('시트')) : 
+                                        true;
+                    return matchesSearch && matchesType;
+                });
+            }, [inventory, searchTerm, filterType]);
+
+            const stats = useMemo(() => {
+                const totalWeight = inventory.reduce((acc, cur) => acc + (parseFloat(cur.weight) || 0), 0);
+                const totalCount = inventory.length;
+                const companyCount = new Set(inventory.map(i => i.company)).size;
+                return { totalWeight, totalCount, companyCount };
+            }, [inventory]);
+
+            const inventoryByCompany = useMemo(() => {
+                const grouped = {};
+                inventory.forEach(item => {
+                    const comp = item.company || 'Unknown';
+                    if (!grouped[comp]) grouped[comp] = [];
+                    grouped[comp].push(item);
+                });
+                return grouped;
+            }, [inventory]);
+
+            // --- Components ---
+
+            const SidebarItem = ({ icon: Icon, label, id }) => (
+                <button 
+                    onClick={() => { setView(id); setIsSidebarOpen(false); }}
+                    className={`w-full flex items-center space-x-3 px-6 py-4 transition-colors ${view === id ? 'bg-blue-800 text-white' : 'text-blue-100 hover:bg-blue-800'}`}
+                >
+                    <Icon size={20} />
+                    <span className="font-medium">{label}</span>
+                </button>
+            );
+
+            // --- Render ---
+
+            if (!user && loading) return <div className="h-screen flex items-center justify-center text-blue-900 font-bold">시스템 로딩중...</div>;
+
             return (
-                <div className="flex h-screen overflow-hidden text-slate-800">
-                    {/* 사이드바 */}
-                    <aside className="w-64 sidebar-bg text-white flex-shrink-0 flex flex-col shadow-xl z-10">
-                        <div className="p-6">
-                            <h1 className="text-2xl font-black tracking-tighter italic">DAEWOONG S&T</h1>
-                            <p className="text-xs text-slate-400 mt-1 font-bold">Steel Management System</p>
+                <div className="flex h-screen overflow-hidden bg-slate-100 text-slate-800">
+                    {/* Sidebar */}
+                    <aside className={`fixed z-30 inset-y-0 left-0 w-64 bg-slate-900 shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                        <div className="flex items-center justify-center h-20 bg-blue-700 shadow-md">
+                            <div className="text-center">
+                                <h1 className="text-xl font-bold text-white tracking-wider">DAEWOONG S&T</h1>
+                                <p className="text-xs text-blue-200">철강 재고 통합 관리</p>
+                            </div>
                         </div>
-                        <nav className="flex-1 px-4 space-y-2">
-                            <button onClick={() => setView('dashboard')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all font-bold ${view === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
-                                <Icon name="dashboard" /> 대시보드
-                            </button>
-                            <button onClick={() => setView('list')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all font-bold ${view === 'list' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
-                                <Icon name="list" /> 재고 목록
-                            </button>
+
+                        <nav className="mt-6 flex flex-col gap-1">
+                            <SidebarItem id="dashboard" icon={LayoutDashboard} label="대시보드 (Dashboard)" />
+                            <SidebarItem id="inventory" icon={Boxes} label="전체 재고 (Inventory)" />
+                            <SidebarItem id="partners" icon={Warehouse} label="업체별 재고장 (Partners)" />
+                            <SidebarItem id="upload" icon={Upload} label="엑셀 입고 (Excel Upload)" />
                         </nav>
-                        <div className="p-6">
-                            <label className="flex items-center justify-center w-full px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl cursor-pointer text-sm font-bold transition-colors shadow-inner">
-                                <Icon name="upload" /> 엑셀 업로드
-                                <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFileUpload} />
-                            </label>
+
+                        <div className="absolute bottom-0 w-full bg-slate-800 p-4">
+                            <div className="flex items-center space-x-3 mb-4 text-slate-300">
+                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                                    {user?.isAnonymous ? 'G' : 'A'}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold">허창수 법인장</p>
+                                    <p className="text-xs text-slate-400">관리자 접속</p>
+                                </div>
+                            </div>
+                            
+                            {/* Integration Link Removed for Standalone Usage */}
                         </div>
                     </aside>
 
-                    {/* 메인 컨텐츠 */}
-                    <main className="flex-1 flex flex-col bg-slate-100 overflow-hidden relative">
-                        {/* 헤더 */}
-                        <header className="bg-white/80 backdrop-blur border-b px-8 py-4 flex justify-between items-center z-10 sticky top-0">
-                            <h2 className="text-xl font-black text-slate-800">
-                                {view === 'dashboard' ? '통계 대시보드 (Dashboard)' : '재고 리스트 (Inventory)'}
-                            </h2>
-                            <div className="flex items-center gap-4">
-                                <select 
-                                    className="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold text-slate-700 outline-none shadow-sm"
-                                    value={selectedClient}
-                                    onChange={(e) => setSelectedClient(e.target.value)}
-                                >
-                                    {clients.map(c => <option key={c} value={c}>{c === 'ALL' ? '전체 업체 (ALL)' : c}</option>)}
-                                </select>
-                                <div className="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center text-white font-black shadow-lg">H</div>
+                    {/* Main Content */}
+                    <main className="flex-1 flex flex-col overflow-hidden">
+                        {/* Header */}
+                        <header className="flex items-center justify-between h-20 bg-white shadow px-6 z-10">
+                            <div className="flex items-center">
+                                <button className="lg:hidden mr-4 text-slate-600" onClick={() => setIsSidebarOpen(true)}>
+                                    <Menu />
+                                </button>
+                                <h2 className="text-2xl font-bold text-slate-800">
+                                    {view === 'dashboard' && '경영 대시보드'}
+                                    {view === 'inventory' && '실시간 재고 현황'}
+                                    {view === 'partners' && '거래처별 재고 관리'}
+                                    {view === 'upload' && '데이터 일괄 등록'}
+                                </h2>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                                <span className="text-sm text-slate-500 hidden md:inline">마지막 동기화: 실시간</span>
+                                <div className="h-8 w-8 rounded bg-green-100 text-green-600 flex items-center justify-center">
+                                    <RefreshCw size={18} />
+                                </div>
                             </div>
                         </header>
 
-                        <div className="flex-1 overflow-auto p-4 md:p-8">
-                            {view === 'dashboard' ? (
-                                <div className="space-y-6">
-                                    {/* 통계 카드 */}
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
-                                        <div className="bg-slate-800 p-6 rounded-2xl shadow-lg text-white">
-                                            <p className="text-slate-400 text-xs font-bold uppercase">Total Weight</p>
-                                            <p className="text-3xl font-black mt-2">{(stats.totalWeight/1000).toFixed(1)} <span className="text-base text-slate-500">ton</span></p>
+                        {/* Content Scroll Area */}
+                        <div className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-6">
+                            
+                            {/* View: Dashboard */}
+                            {view === 'dashboard' && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                    <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <p className="text-sm text-slate-500 font-medium">총 재고 중량</p>
+                                                <p className="text-3xl font-bold text-slate-800 mt-1">{formatNumber(stats.totalWeight)} <span className="text-lg text-slate-400">kg</span></p>
+                                            </div>
+                                            <div className="p-3 bg-blue-50 rounded-full text-blue-600"><Boxes /></div>
                                         </div>
-                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                                            <p className="text-blue-600 text-xs font-bold uppercase">Raw Coil (원코일)</p>
-                                            <p className="text-3xl font-black text-slate-800 mt-2">{(stats.byType['원코일']/1000).toFixed(1)} <span className="text-base text-slate-400">ton</span></p>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-emerald-500">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <p className="text-sm text-slate-500 font-medium">등록 코일/시트 수</p>
+                                                <p className="text-3xl font-bold text-slate-800 mt-1">{formatNumber(stats.totalCount)} <span className="text-lg text-slate-400">매</span></p>
+                                            </div>
+                                            <div className="p-3 bg-emerald-50 rounded-full text-emerald-600"><FileSpreadsheet /></div>
                                         </div>
-                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                                            <p className="text-emerald-600 text-xs font-bold uppercase">Skelp (스켈프)</p>
-                                            <p className="text-3xl font-black text-slate-800 mt-2">{(stats.byType['스켈프']/1000).toFixed(1)} <span className="text-base text-slate-400">ton</span></p>
-                                        </div>
-                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                                            <p className="text-orange-600 text-xs font-bold uppercase">Sheet (시트)</p>
-                                            <p className="text-3xl font-black text-slate-800 mt-2">{(stats.byType['시트']/1000).toFixed(1)} <span className="text-base text-slate-400">ton</span></p>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-purple-500">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <p className="text-sm text-slate-500 font-medium">관리 업체 수</p>
+                                                <p className="text-3xl font-bold text-slate-800 mt-1">{stats.companyCount} <span className="text-lg text-slate-400">개사</span></p>
+                                            </div>
+                                            <div className="p-3 bg-purple-50 rounded-full text-purple-600"><Warehouse /></div>
                                         </div>
                                     </div>
                                     
-                                    {/* 안내 메시지 */}
-                                    <div className="bg-white p-12 rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400">
-                                        <span className="text-4xl mb-4">📥</span>
-                                        <p className="font-bold">엑셀 파일을 업로드하면 통계가 자동 갱신됩니다.</p>
-                                        <p className="text-xs mt-2">필수 컬럼: Client, Spec, T, W, L, Weight</p>
+                                    {/* Simple Chart Visualization (CSS Bar) */}
+                                    <div className="col-span-1 md:col-span-3 bg-white p-6 rounded-lg shadow-sm mt-4">
+                                        <h3 className="text-lg font-bold mb-4 text-slate-700">품목별 비중 (Weight 기준)</h3>
+                                        <div className="w-full bg-slate-200 rounded-full h-6 flex overflow-hidden">
+                                            {(() => {
+                                                const coilW = inventory.filter(i => i.type.includes('Coil') || i.type.includes('코일')).reduce((a,b)=>a+(parseFloat(b.weight)||0),0);
+                                                const sheetW = inventory.filter(i => i.type.includes('Sheet') || i.type.includes('시트')).reduce((a,b)=>a+(parseFloat(b.weight)||0),0);
+                                                const total = coilW + sheetW || 1;
+                                                return (
+                                                    <>
+                                                        <div className="bg-blue-500 h-full flex items-center justify-center text-xs text-white" style={{width: `${(coilW/total)*100}%`}}>Coil ({Math.round((coilW/total)*100)}%)</div>
+                                                        <div className="bg-emerald-500 h-full flex items-center justify-center text-xs text-white" style={{width: `${(sheetW/total)*100}%`}}>Sheet ({Math.round((sheetW/total)*100)}%)</div>
+                                                    </>
+                                                )
+                                            })()}
+                                        </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px] flex flex-col">
-                                    <div className="p-4 border-b flex justify-between items-center bg-slate-50">
-                                        <div className="relative flex items-center bg-white border rounded-lg px-3 py-2 w-64 shadow-sm">
-                                            <Icon name="search" />
-                                            <input 
-                                                type="text" 
-                                                placeholder="Spec, Type 검색..." 
-                                                className="bg-transparent text-sm outline-none w-full font-bold"
-                                                value={searchTerm}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
-                                            />
+                            )}
+
+                            {/* View: Inventory List */}
+                            {view === 'inventory' && (
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="p-4 border-b flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50">
+                                        <div className="flex items-center gap-2 w-full md:w-auto">
+                                            <div className="relative flex-1">
+                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="업체명, 강종, 관리번호 검색..." 
+                                                    className="pl-10 pr-4 py-2 border rounded-lg w-full md:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                />
+                                            </div>
+                                            <select 
+                                                className="p-2 border rounded-lg bg-white"
+                                                value={filterType}
+                                                onChange={(e) => setFilterType(e.target.value)}
+                                            >
+                                                <option value="All">전체 품목</option>
+                                                <option value="Coil">원코일 (Raw Coil)</option>
+                                                <option value="Sheet">시트 (Sheet)</option>
+                                            </select>
                                         </div>
-                                        <span className="text-xs font-bold text-slate-500 bg-slate-200 px-2 py-1 rounded">Total: {filteredData.length}</span>
+                                        <div className="text-sm text-slate-500">
+                                            총 {filteredInventory.length}건 조회됨
+                                        </div>
                                     </div>
-                                    <div className="overflow-auto flex-1">
+                                    <div className="overflow-x-auto">
                                         <table className="w-full text-sm text-left">
-                                            <thead className="bg-slate-100 text-slate-500 uppercase text-xs font-black sticky top-0">
+                                            <thead className="bg-slate-100 text-slate-600 font-bold uppercase">
                                                 <tr>
-                                                    <th className="px-6 py-4">Client</th>
-                                                    <th className="px-6 py-4 text-center">Type</th>
-                                                    <th className="px-6 py-4">Spec</th>
-                                                    <th className="px-6 py-4 text-center">T</th>
-                                                    <th className="px-6 py-4 text-center">W</th>
-                                                    <th className="px-6 py-4 text-center">L</th>
-                                                    <th className="px-6 py-4 text-right">Weight (kg)</th>
-                                                    <th className="px-6 py-4">Location</th>
+                                                    <th className="px-6 py-3">업체명</th>
+                                                    <th className="px-6 py-3">관리번호</th>
+                                                    <th className="px-6 py-3">품명 (분류)</th>
+                                                    <th className="px-6 py-3">강종</th>
+                                                    <th className="px-6 py-3 text-right">Size (TxWxL)</th>
+                                                    <th className="px-6 py-3 text-right">중량 (kg)</th>
+                                                    <th className="px-6 py-3 text-center">관리</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {filteredData.length > 0 ? filteredData.map(item => (
-                                                    <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
-                                                        <td className="px-6 py-4 font-bold text-slate-700">{item.client}</td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase
-                                                                ${item.type === '원코일' ? 'bg-blue-100 text-blue-700' : 
-                                                                  item.type === '스켈프' ? 'bg-emerald-100 text-emerald-700' : 
-                                                                  item.type === '시트' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                                {item.type}
-                                                            </span>
+                                            <tbody className="divide-y divide-slate-200">
+                                                {filteredInventory.map((item) => (
+                                                    <tr key={item.id} className="hover:bg-slate-50 transition">
+                                                        <td className="px-6 py-4 font-medium text-slate-800">{item.company}</td>
+                                                        <td className="px-6 py-4 text-slate-600">{item.coilNo}</td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium text-slate-700">{item.type}</span>
+                                                                <span className="text-xs text-blue-500">{item.category}</span>
+                                                            </div>
                                                         </td>
-                                                        <td className="px-6 py-4 text-slate-600 font-medium">{item.spec}</td>
-                                                        <td className="px-6 py-4 text-center font-mono">{item.t}</td>
-                                                        <td className="px-6 py-4 text-center font-mono">{item.w}</td>
-                                                        <td className="px-6 py-4 text-center font-mono text-slate-400">{item.l || '-'}</td>
-                                                        <td className="px-6 py-4 text-right font-mono font-bold text-slate-800">{item.weight.toLocaleString()}</td>
-                                                        <td className="px-6 py-4 text-xs font-bold text-slate-400">{item.location}</td>
+                                                        <td className="px-6 py-4 text-slate-600">{item.spec}</td>
+                                                        <td className="px-6 py-4 text-right font-mono">
+                                                            {item.thickness} x {item.width} x {item.length || 'C'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right font-bold text-slate-700">
+                                                            {formatNumber(item.weight)}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600 p-1">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
                                                     </tr>
-                                                )) : (
+                                                ))}
+                                                {filteredInventory.length === 0 && (
                                                     <tr>
-                                                        <td colSpan="8" className="text-center py-20 text-slate-400 font-bold">데이터가 없습니다.</td>
+                                                        <td colSpan="7" className="px-6 py-10 text-center text-slate-400">
+                                                            검색 결과가 없습니다.
+                                                        </td>
                                                     </tr>
                                                 )}
                                             </tbody>
@@ -248,11 +434,120 @@
                                     </div>
                                 </div>
                             )}
+
+                            {/* View: Partners (Company Separation) */}
+                            {view === 'partners' && (
+                                <div className="space-y-8">
+                                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-start space-x-3">
+                                        <Warehouse className="text-blue-600 mt-1" size={20}/>
+                                        <div>
+                                            <h4 className="font-bold text-blue-800">업체별 재고장 자동 분리</h4>
+                                            <p className="text-sm text-blue-600">등록된 재고를 업체명 기준으로 자동 분류하여 표시합니다.</p>
+                                        </div>
+                                    </div>
+
+                                    {Object.keys(inventoryByCompany).sort().map(companyName => (
+                                        <div key={companyName} className="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
+                                            <div className="bg-slate-800 px-6 py-4 flex justify-between items-center text-white">
+                                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                                    <Warehouse size={18} className="text-yellow-400"/>
+                                                    {companyName}
+                                                </h3>
+                                                <span className="bg-slate-700 px-3 py-1 rounded-full text-xs">
+                                                    총 {inventoryByCompany[companyName].length}건 / {formatNumber(inventoryByCompany[companyName].reduce((a,b)=>a+(parseFloat(b.weight)||0),0))} kg
+                                                </span>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-slate-50 border-b">
+                                                        <tr>
+                                                            <th className="px-4 py-2 text-left">관리번호</th>
+                                                            <th className="px-4 py-2 text-left">품명</th>
+                                                            <th className="px-4 py-2 text-left">규격 (Class)</th>
+                                                            <th className="px-4 py-2 text-right">Spec (TxWxL)</th>
+                                                            <th className="px-4 py-2 text-right">중량</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {inventoryByCompany[companyName].map(item => (
+                                                            <tr key={item.id} className="border-b last:border-0 hover:bg-slate-50">
+                                                                <td className="px-4 py-2 text-slate-600">{item.coilNo}</td>
+                                                                <td className="px-4 py-2">{item.type}</td>
+                                                                <td className="px-4 py-2 text-blue-600 text-xs">{item.category}</td>
+                                                                <td className="px-4 py-2 text-right font-mono text-slate-500">
+                                                                    {item.thickness} x {item.width} x {item.length}
+                                                                </td>
+                                                                <td className="px-4 py-2 text-right font-medium">
+                                                                    {formatNumber(item.weight)}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* View: Upload */}
+                            {view === 'upload' && (
+                                <div className="max-w-2xl mx-auto">
+                                    <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                                        <div className="mx-auto h-16 w-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                                            <FileSpreadsheet size={32} />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-slate-800 mb-2">엑셀 재고 일괄 등록</h3>
+                                        <p className="text-slate-500 mb-6">
+                                            준비된 재고 리스트(xlsx)를 아래 영역에 드래그하거나 클릭하여 업로드하세요.<br/>
+                                            <span className="text-xs text-red-500">* 원코일은 사이즈(폭)를 분석하여 자동으로 분류 코드가 생성됩니다.</span>
+                                        </p>
+
+                                        <div className="relative border-2 border-dashed border-slate-300 rounded-lg p-12 hover:bg-slate-50 transition cursor-pointer group">
+                                            <input 
+                                                type="file" 
+                                                accept=".xlsx, .xls"
+                                                onChange={handleFileUpload}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex flex-col items-center">
+                                                <Upload className="text-slate-400 group-hover:text-blue-500 mb-3" size={40} />
+                                                <span className="text-sm font-medium text-slate-600 group-hover:text-blue-600">
+                                                    클릭하여 파일 선택 또는 드래그 앤 드롭
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-8 text-left bg-slate-50 p-4 rounded text-sm text-slate-600">
+                                            <h5 className="font-bold mb-2 flex items-center"><Tag size={14} className="mr-1"/> 엑셀 작성 가이드 (필수 컬럼명)</h5>
+                                            <ul className="list-disc pl-5 space-y-1">
+                                                <li><strong>품명 (Type):</strong> 원코일, 스켈프, 시트 등 구분</li>
+                                                <li><strong>업체명 (Company):</strong> 재고 소유주 또는 매입처</li>
+                                                <li><strong>두께 (Thickness) / 폭 (Width) / 길이 (Length)</strong></li>
+                                                <li><strong>중량 (Weight)</strong></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Logs */}
+                                    {uploadLog.length > 0 && (
+                                        <div className="mt-6 bg-white p-4 rounded-lg shadow-sm">
+                                            <h4 className="font-bold text-slate-700 mb-2">처리 로그</h4>
+                                            <div className="text-sm text-slate-500 space-y-1">
+                                                {uploadLog.map((log, i) => (
+                                                    <p key={i}>• {log}</p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                         </div>
                     </main>
                 </div>
             );
-        };
+        }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
