@@ -50,6 +50,9 @@
             <button onclick="switchTab('inventory')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all" id="nav-inventory">
                 <i class="fa-solid fa-layer-group w-5"></i> <span class="font-medium">통합 재고 현황</span>
             </button>
+            <button onclick="switchTab('rules')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all" id="nav-rules">
+                <i class="fa-solid fa-tags w-5"></i> <span class="font-medium">업체별 아이템 리스트</span>
+            </button>
             <button onclick="switchTab('upload')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all" id="nav-upload">
                 <i class="fa-solid fa-file-excel w-5"></i> <span class="font-medium">엑셀 일괄 등록</span>
             </button>
@@ -107,7 +110,7 @@
                          <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                             <i class="fa-solid fa-building text-6xl text-indigo-600"></i>
                         </div>
-                        <p class="text-sm text-slate-500 font-medium mb-1">주요 거래처</p>
+                        <p class="text-sm text-slate-500 font-medium mb-1">관리 업체 수</p>
                         <h3 class="text-2xl font-bold text-slate-800">5 <span class="text-sm font-normal text-slate-500">개사</span></h3>
                     </div>
                 </div>
@@ -160,12 +163,12 @@
                                 <tr>
                                     <th class="px-6 py-3 whitespace-nowrap">Vendor</th>
                                     <th class="px-6 py-3 whitespace-nowrap">품명 (Product)</th>
-                                    <th class="px-6 py-3 whitespace-nowrap">Spec</th>
+                                    <th class="px-6 py-3 whitespace-nowrap">강종 (Spec)</th>
                                     <th class="px-6 py-3 whitespace-nowrap">두께 (T)</th>
                                     <th class="px-6 py-3 whitespace-nowrap">폭 (W)</th>
                                     <th class="px-6 py-3 whitespace-nowrap">길이 (L)</th>
                                     <th class="px-6 py-3 text-right whitespace-nowrap">중량 (kg)</th>
-                                    <th class="px-6 py-3 whitespace-nowrap">위치</th>
+                                    <th class="px-6 py-3 whitespace-nowrap">창고 (위치)</th>
                                     <th class="px-6 py-3 text-center whitespace-nowrap">관리</th>
                                 </tr>
                             </thead>
@@ -180,7 +183,88 @@
                 </div>
             </div>
 
-            <!-- 3. Upload Section -->
+            <!-- 3. Vendor Item List (Rules) Section -->
+            <div id="view-rules" class="hidden fade-in max-w-6xl mx-auto h-full flex flex-col">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">업체별 자동 분류 기준 (System Rules)</h3>
+                    <p class="text-sm text-slate-500 mb-4">엑셀 업로드 시 아래 조건에 따라 자동으로 업체가 배정됩니다.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Rule Cards -->
+                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-blue-500 bg-blue-50/50">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-blue-900">INZI</h4>
+                                <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold">Rule 1</span>
+                            </div>
+                            <ul class="text-sm text-slate-600 space-y-1">
+                                <li>• 품명에 <strong>'SPHC'</strong> 포함</li>
+                                <li>• 또는 두께(T)가 <strong>2.0mm 이상</strong></li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-orange-500 bg-orange-50/50">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-orange-900">SHINHEUNG</h4>
+                                <span class="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold">Rule 2</span>
+                            </div>
+                            <ul class="text-sm text-slate-600 space-y-1">
+                                <li>• 품명 또는 강종에 <strong>'GI'</strong> 포함</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-emerald-500 bg-emerald-50/50">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-emerald-900">DAEYEONG</h4>
+                                <span class="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded font-bold">Rule 3</span>
+                            </div>
+                            <ul class="text-sm text-slate-600 space-y-1">
+                                <li>• 품명 또는 강종에 <strong>'CR'</strong> 포함</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-purple-500 bg-purple-50/50">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-purple-900">DA</h4>
+                                <span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded font-bold">Rule 4</span>
+                            </div>
+                            <ul class="text-sm text-slate-600 space-y-1">
+                                <li>• 품명 또는 강종에 <strong>'PO'</strong> 포함</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-lg border border-l-4 border-slate-200 border-l-slate-500 bg-slate-50">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-slate-900">ETD</h4>
+                                <span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded font-bold">Default</span>
+                            </div>
+                            <ul class="text-sm text-slate-600 space-y-1">
+                                <li>• 위 조건에 해당하지 않는 모든 자재</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Classified Items Summary -->
+                <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 overflow-hidden flex flex-col">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">현재 분류된 아이템 리스트 (Summary)</h3>
+                    <div class="overflow-auto flex-1">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3">업체명</th>
+                                    <th class="px-6 py-3">주요 품목/강종</th>
+                                    <th class="px-6 py-3 text-right">등록된 수량</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100" id="rules-summary-table">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Upload Section -->
             <div id="view-upload" class="hidden fade-in max-w-3xl mx-auto">
                 <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
                     <div class="p-6 border-b border-slate-200 bg-slate-50">
@@ -188,28 +272,13 @@
                             <i class="fa-solid fa-file-import text-blue-600"></i> 엑셀 재고 등록
                         </h3>
                         <p class="text-sm text-slate-500 mt-2">
-                            지정된 양식의 엑셀 파일을 업로드하면 <strong>자동으로 업체를 분류</strong>하여 시스템에 등록합니다.
+                            회사 양식(01JAN2025.xlsx)을 업로드하면 시스템이 <strong>헤더를 자동 인식</strong>하여 등록합니다.
                         </p>
                     </div>
                     
                     <div class="p-8 space-y-8">
-                        <!-- Step 1: Template -->
                         <div class="flex items-start gap-4">
                             <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold flex-shrink-0">1</div>
-                            <div class="flex-1">
-                                <h4 class="font-bold text-slate-700">기본 양식 다운로드</h4>
-                                <p class="text-sm text-slate-500 mb-3">아래 버튼을 눌러 기본 엑셀 양식을 다운로드하세요. 이 양식을 준수해야 정확하게 업로드됩니다.</p>
-                                <button onclick="downloadTemplate()" class="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-700 text-sm font-medium flex items-center gap-2 transition-colors">
-                                    <i class="fa-solid fa-download"></i> 엑셀 템플릿 받기 (.xlsx)
-                                </button>
-                            </div>
-                        </div>
-
-                        <hr class="border-slate-100">
-
-                        <!-- Step 2: Upload -->
-                        <div class="flex items-start gap-4">
-                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold flex-shrink-0">2</div>
                             <div class="flex-1 w-full">
                                 <h4 class="font-bold text-slate-700 mb-2">파일 업로드 및 자동 분류</h4>
                                 <div class="w-full border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer relative" id="drop-zone">
@@ -221,17 +290,8 @@
                             </div>
                         </div>
 
-                        <!-- Preview & Logic Description -->
-                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm">
-                            <h5 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-robot"></i> 자동 업체 분류 로직 (가상)</h5>
-                            <ul class="list-disc list-inside text-blue-700 space-y-1 text-xs">
-                                <li><strong>INZI:</strong> 품명에 'SPHC' 포함 또는 두께 >= 2.0mm</li>
-                                <li><strong>SHINHEUNG:</strong> 품명에 'GI' 포함</li>
-                                <li><strong>DAEYEONG:</strong> 품명에 'CR' 포함</li>
-                                <li><strong>DA:</strong> 품명에 'PO' 포함</li>
-                                <li><strong>ETD:</strong> 위 조건에 해당하지 않는 나머지</li>
-                            </ul>
-                            <p class="mt-2 text-xs text-blue-500">* 엑셀 파일 내 'Vendor' 컬럼에 값이 있으면 해당 값이 우선 적용됩니다.</p>
+                        <!-- Processing Log -->
+                        <div id="upload-log" class="hidden bg-slate-50 p-4 rounded-lg border border-slate-200 font-mono text-xs text-slate-600 max-h-40 overflow-y-auto">
                         </div>
                     </div>
                 </div>
@@ -249,14 +309,12 @@
         // Global Variables
         window.db = null;
         window.auth = null;
-        window.appId = 'daewoong-st-inventory-v1'; // Default App ID
+        window.appId = 'daewoong-st-inventory-v1'; 
         window.userId = null;
         window.inventoryData = [];
         let unsubscribe = null;
 
-        // --- 1. Firebase Configuration (Github Deployment Ready) ---
-        // [중요] 아래 firebaseConfig 객체의 값을 본인의 Firebase 프로젝트 설정값으로 변경해주세요.
-        // 위치: Firebase Console -> 프로젝트 설정 -> 일반 -> 내 앱 -> SDK 설정 및 구성
+        // [IMPORTANT] Replace with your actual Firebase Config
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -268,36 +326,28 @@
         
         async function initFirebase() {
             try {
-                // Check if config is filled (simple validation)
                 if (firebaseConfig.apiKey === "YOUR_API_KEY") {
                     console.warn("Firebase Config가 설정되지 않았습니다.");
-                    // Optional: Show UI warning or run in offline/demo mode
-                    // For now, let's just alert the user to check console
-                    // return;
                 }
 
                 const app = initializeApp(firebaseConfig);
                 window.auth = getAuth(app);
                 window.db = getFirestore(app);
                 
-                // Auth Flow: Anonymous Sign-In
                 await signInAnonymously(window.auth);
 
                 onAuthStateChanged(window.auth, (user) => {
                     if (user) {
                         window.userId = user.uid;
-                        console.log("Logged in:", user.uid);
-                        loadInventory(); // Start listening to data
+                        loadInventory(); 
                     }
                 });
             } catch (e) {
                 console.error("Firebase Init Error:", e);
-                // Fallback for demo visualization without DB
                 document.getElementById('inventory-table-body').innerHTML = '<tr><td colspan="9" class="p-8 text-center text-red-500">데이터베이스 연결 실패<br><span class="text-xs text-slate-400">index.html 파일을 열어 firebaseConfig 값을 설정해주세요.</span></td></tr>';
             }
         }
 
-        // --- 2. Data Loading & Listener ---
         function loadInventory() {
             if (!window.db || !window.userId) return;
 
@@ -309,34 +359,29 @@
                     window.inventoryData.push({ id: doc.id, ...doc.data() });
                 });
                 
-                // Sort locally by entry date descending
                 window.inventoryData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 
                 updateDashboard();
-                renderTable(); // Initial render
+                updateRulesSummary();
+                renderTable(); 
             }, (error) => {
                 console.error("Data fetch error:", error);
             });
         }
 
-        // --- 3. UI Functions ---
+        // --- UI Functions ---
         window.switchTab = function(tabName) {
-            // Update Tab Content Visibility
-            document.getElementById('view-dashboard').classList.add('hidden');
-            document.getElementById('view-inventory').classList.add('hidden');
-            document.getElementById('view-upload').classList.add('hidden');
-            
+            document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById(`view-${tabName}`).classList.remove('hidden');
 
-            // Update Page Title
             const titles = {
                 'dashboard': '대시보드',
                 'inventory': '통합 재고 현황',
+                'rules': '업체별 아이템 리스트',
                 'upload': '엑셀 일괄 등록'
             };
             document.getElementById('page-title').innerText = titles[tabName];
 
-            // Update Sidebar Active State
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
                 el.classList.add('text-slate-400');
@@ -346,14 +391,13 @@
             activeNav.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
 
             if(tabName === 'inventory') renderTable();
+            if(tabName === 'rules') updateRulesSummary();
         }
 
         window.currentVendorFilter = 'ALL';
 
         window.filterVendor = function(vendor) {
             window.currentVendorFilter = vendor;
-            
-            // UI Update for tabs
             document.querySelectorAll('.vendor-tab').forEach(btn => {
                 btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'active');
                 btn.classList.add('text-slate-600', 'hover:bg-slate-100');
@@ -362,7 +406,6 @@
                     btn.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'active');
                 }
             });
-
             renderTable();
         }
 
@@ -371,13 +414,9 @@
             const searchInput = document.getElementById('search-input').value.toLowerCase();
             
             let filtered = window.inventoryData.filter(item => {
-                // Vendor Filter
                 if (window.currentVendorFilter !== 'ALL' && item.vendor !== window.currentVendorFilter) return false;
-                
-                // Search Filter
                 const searchStr = `${item.product} ${item.spec} ${item.location}`.toLowerCase();
                 if (searchInput && !searchStr.includes(searchInput)) return false;
-                
                 return true;
             });
 
@@ -407,11 +446,37 @@
             `).join('');
         }
 
+        window.updateRulesSummary = function() {
+            const vendors = ['INZI', 'SHINHEUNG', 'DAEYEONG', 'DA', 'ETD'];
+            const summaryBody = document.getElementById('rules-summary-table');
+            
+            // Analyze existing data
+            const stats = {};
+            vendors.forEach(v => stats[v] = { count: 0, specs: new Set() });
+            
+            window.inventoryData.forEach(item => {
+                const v = item.vendor && vendors.includes(item.vendor) ? item.vendor : 'ETD';
+                if(stats[v]) {
+                    stats[v].count++;
+                    if(item.spec) stats[v].specs.add(item.spec);
+                }
+            });
+
+            summaryBody.innerHTML = vendors.map(v => {
+                const specList = Array.from(stats[v].specs).slice(0, 3).join(', ') + (stats[v].specs.size > 3 ? '...' : '');
+                return `
+                <tr class="border-b border-slate-50">
+                    <td class="px-6 py-4 font-bold text-slate-700">${v}</td>
+                    <td class="px-6 py-4 text-slate-500 text-xs">${specList || '-'}</td>
+                    <td class="px-6 py-4 text-right font-mono">${stats[v].count.toLocaleString()}</td>
+                </tr>`;
+            }).join('');
+        }
+
         window.deleteItem = async function(id) {
             if(confirm('정말 삭제하시겠습니까?')) {
                 try {
                     await deleteDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'inventory', id));
-                    // Listener will update UI
                 } catch(e) {
                     alert('삭제 중 오류 발생: ' + e.message);
                 }
@@ -419,26 +484,23 @@
         }
 
         function updateDashboard() {
-            // Calculate Totals
             const totalW = window.inventoryData.reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
             const totalC = window.inventoryData.length;
 
             document.getElementById('dash-total-weight').innerHTML = `${(totalW/1000).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} <span class="text-sm font-normal text-slate-500">Ton</span>`;
             document.getElementById('dash-total-count').innerHTML = `${totalC.toLocaleString()} <span class="text-sm font-normal text-slate-500">EA</span>`;
 
-            // Calculate Vendor Stats
             const vendors = ['INZI', 'SHINHEUNG', 'DAEYEONG', 'DA', 'ETD'];
             const stats = {};
             vendors.forEach(v => stats[v] = { count: 0, weight: 0 });
             
             window.inventoryData.forEach(item => {
                 const v = item.vendor && vendors.includes(item.vendor) ? item.vendor : 'ETD';
-                if (!stats[v]) stats[v] = { count: 0, weight: 0 }; // Safety
+                if (!stats[v]) stats[v] = { count: 0, weight: 0 };
                 stats[v].count++;
                 stats[v].weight += (Number(item.weight) || 0);
             });
 
-            // Update Vendor Table
             const vendorTableHTML = vendors.map(v => `
                 <tr class="hover:bg-slate-50 border-b border-slate-50">
                     <td class="px-6 py-4 font-bold text-slate-700">${v}</td>
@@ -454,153 +516,136 @@
             document.getElementById('dashboard-vendor-table').innerHTML = vendorTableHTML;
         }
 
-        // --- 4. Excel & Logic Functions ---
-
-        // Auto Classification Logic
+        // --- Logic: Determine Vendor ---
         function determineVendor(row) {
-            // 1. Explicit Vendor in Excel?
-            if (row.vendor && ['INZI', 'SHINHEUNG', 'DAEYEONG', 'DA', 'ETD'].includes(row.vendor.toUpperCase())) {
-                return row.vendor.toUpperCase();
-            }
-
+            // Rule Logic based on User Request
             const product = (row.product || '').toUpperCase();
             const spec = (row.spec || '').toUpperCase();
             const thickness = Number(row.thickness) || 0;
-            const width = Number(row.width) || 0;
-
-            // 2. Logic Rules (Example - Based on prompt "Check Name, Thickness, Width, Length")
-            // Rule 1: INZI (Example: SPHC or Thick >= 2.0)
-            if (product.includes('SPHC') || thickness >= 2.0) {
-                return 'INZI';
-            }
-            // Rule 2: SHINHEUNG (Example: GI)
-            if (product.includes('GI') || spec.includes('GI')) {
-                return 'SHINHEUNG';
-            }
-            // Rule 3: DAEYEONG (Example: CR)
-            if (product.includes('CR') || spec.includes('CR')) {
-                return 'DAEYEONG';
-            }
-            // Rule 4: DA (Example: PO)
-            if (product.includes('PO') || spec.includes('PO')) {
-                return 'DA';
-            }
             
-            // Rule 5: Default to ETD
+            // 1. INZI: SPHC or T >= 2.0
+            if (product.includes('SPHC') || thickness >= 2.0) return 'INZI';
+            // 2. SHINHEUNG: GI
+            if (product.includes('GI') || spec.includes('GI')) return 'SHINHEUNG';
+            // 3. DAEYEONG: CR
+            if (product.includes('CR') || spec.includes('CR')) return 'DAEYEONG';
+            // 4. DA: PO
+            if (product.includes('PO') || spec.includes('PO')) return 'DA';
+            
             return 'ETD';
-        }
-
-        window.downloadTemplate = function() {
-            const wb = XLSX.utils.book_new();
-            const headers = [
-                ['Vendor', 'Product', 'Spec', 'Thickness', 'Width', 'Length', 'Weight', 'Location']
-            ];
-            // Sample Data
-            const sampleData = [
-                ['', 'Coil (SPHC)', 'SPHC', 2.3, 1219, 0, 15000, 'A-01'],
-                ['', 'Sheet (GI)', 'GI', 0.8, 1000, 2438, 2500, 'B-02'],
-                ['DA', 'Coil (PO)', 'PO', 1.6, 1219, 0, 12000, 'C-05']
-            ];
-            
-            const ws = XLSX.utils.aoa_to_sheet([...headers, ...sampleData]);
-            
-            // Col widths
-            ws['!cols'] = [
-                {wch: 10}, {wch: 20}, {wch: 15}, {wch: 10}, {wch: 10}, {wch: 10}, {wch: 15}, {wch: 10}
-            ];
-
-            XLSX.utils.book_append_sheet(wb, ws, "Inventory_Template");
-            XLSX.writeFile(wb, "Daewoong_Inventory_Template.xlsx");
         }
 
         window.handleFileSelect = function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Update UI
             document.getElementById('upload-text').innerText = `처리중: ${file.name}`;
             document.getElementById('upload-icon').className = "fa-solid fa-spinner fa-spin text-4xl text-blue-500 mb-3";
+            const logEl = document.getElementById('upload-log');
+            logEl.classList.remove('hidden');
+            logEl.innerHTML = "<div>파일 읽는 중...</div>";
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
-                    
-                    // Assume first sheet
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
                     
-                    // Convert to JSON
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                    if (jsonData.length === 0) {
-                        alert("엑셀 파일에 데이터가 없습니다.");
-                        resetUploadUI();
-                        return;
+                    // Convert to JSON (Header is typically row 2 based on provided file snippet "NO, 일자, ...")
+                    // We try to find the header row by looking for "품명" or "제품번호"
+                    const rawData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    
+                    let headerRowIndex = -1;
+                    for(let i=0; i<rawData.length; i++) {
+                        const rowStr = rawData[i].join(',').toUpperCase();
+                        if(rowStr.includes('품명') && rowStr.includes('두께')) {
+                            headerRowIndex = i;
+                            break;
+                        }
                     }
 
-                    // Process Data
+                    if (headerRowIndex === -1) {
+                        throw new Error("헤더를 찾을 수 없습니다. (필수 컬럼: 품명, 두께 T 등)");
+                    }
+
+                    logEl.innerHTML += `<div>헤더 발견: ${headerRowIndex + 1}행</div>`;
+
+                    // Create structured JSON
+                    const headers = rawData[headerRowIndex];
+                    const rows = rawData.slice(headerRowIndex + 1);
                     const batchSize = 500; 
                     let batch = writeBatch(window.db);
                     let count = 0;
-                    
-                    // Map Excel Headers to DB Fields & Apply Logic
-                    jsonData.forEach((row, index) => {
-                        // Normalize keys (remove spaces, lowercase) for safer matching if headers vary slightly
-                        // Here we assume user follows template keys: Vendor, Product, Spec, Thickness, Width, Length, Weight, Location
-                        
+                    let ops = 0;
+
+                    // Helper to find column index by keyword
+                    const getIdx = (keywords) => headers.findIndex(h => keywords.some(k => (h||'').toString().includes(k)));
+
+                    const idxProduct = getIdx(['품명']);
+                    const idxSpec = getIdx(['강종']);
+                    const idxThick = getIdx(['두께']);
+                    const idxWidth = getIdx(['폭']);
+                    const idxLength = getIdx(['길이']);
+                    const idxWeight = getIdx(['중량']);
+                    const idxLocation = getIdx(['창고', '위치']);
+
+                    for(let row of rows) {
+                        if(!row[idxProduct] && !row[idxSpec]) continue; // Skip empty rows
+
                         const item = {
-                            product: row['Product'] || row['품명'] || '',
-                            spec: row['Spec'] || row['규격'] || '',
-                            thickness: row['Thickness'] || row['두께'] || 0,
-                            width: row['Width'] || row['폭'] || 0,
-                            length: row['Length'] || row['길이'] || 0,
-                            weight: row['Weight'] || row['중량'] || 0,
-                            location: row['Location'] || row['위치'] || '',
-                            vendorInExcel: row['Vendor'] || row['업체'] || '', // Explicit vendor
+                            product: row[idxProduct] || '',
+                            spec: row[idxSpec] || '',
+                            thickness: row[idxThick] || 0,
+                            width: row[idxWidth] || 0,
+                            length: row[idxLength] || 0,
+                            weight: row[idxWeight] || 0,
+                            location: row[idxLocation] || '',
                             createdAt: new Date().toISOString()
                         };
 
-                        // Logic
                         item.vendor = determineVendor(item);
-
-                        // Add to Firestore Batch
+                        
                         const docRef = doc(collection(window.db, 'artifacts', window.appId, 'public', 'data', 'inventory'));
                         batch.set(docRef, item);
                         count++;
+                        ops++;
 
-                        // Commit every 500 items (Firestore limit)
-                        if (count % batchSize === 0) {
-                            // In a real app we would await batch.commit() and start a new one.
-                            // For simplicity in this demo, we assume < 500 items or simple batch.
+                        if (ops >= batchSize) {
+                            await batch.commit();
+                            batch = writeBatch(window.db);
+                            ops = 0;
+                            logEl.innerHTML += `<div>${count}건 처리 중...</div>`;
                         }
-                    });
+                    }
 
-                    await batch.commit();
+                    if (ops > 0) await batch.commit();
                     
+                    logEl.innerHTML += `<div class="text-green-600 font-bold">완료: 총 ${count}건 등록됨</div>`;
                     alert(`${count}건의 재고가 성공적으로 등록되었습니다.`);
-                    switchTab('inventory'); // Go to list view
+                    
+                    setTimeout(() => {
+                         document.getElementById('upload-text').innerText = "엑셀 파일을 이곳에 드래그하거나 클릭하세요";
+                         document.getElementById('upload-icon').className = "fa-solid fa-cloud-arrow-up text-4xl text-slate-300 mb-3";
+                         document.getElementById('excel-input').value = "";
+                         switchTab('inventory');
+                    }, 1000);
+
                 } catch (err) {
                     console.error(err);
-                    alert("파일 처리 중 오류가 발생했습니다: " + err.message);
-                } finally {
-                    resetUploadUI();
+                    logEl.innerHTML += `<div class="text-red-500">오류: ${err.message}</div>`;
+                    alert("파일 처리 중 오류가 발생했습니다.");
+                    document.getElementById('upload-text').innerText = "엑셀 파일을 이곳에 드래그하거나 클릭하세요";
+                    document.getElementById('upload-icon').className = "fa-solid fa-cloud-arrow-up text-4xl text-slate-300 mb-3";
                 }
             };
             reader.readAsArrayBuffer(file);
         }
 
-        function resetUploadUI() {
-            document.getElementById('upload-text').innerText = "엑셀 파일을 이곳에 드래그하거나 클릭하세요";
-            document.getElementById('upload-icon').className = "fa-solid fa-cloud-arrow-up text-4xl text-slate-300 mb-3";
-            document.getElementById('excel-input').value = ""; // Reset input
-        }
-
-        // Initialize App
         window.onload = function() {
             initFirebase();
-            switchTab('dashboard'); // Default Tab
+            switchTab('dashboard');
         }
     </script>
 </body>
