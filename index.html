@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daewoong S&T - Steel Stock Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; }
+        .sidebar-bg { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const Icon = ({ name, size = 18, className }) => {
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
+            return <i data-lucide={name} width={size} height={size} className={className}></i>;
+        };
+
+        // 초기 샘플 데이터
+        const INITIAL_DATA = [
+            { id: 1, client: '삼성전자', type: '원코일', spec: 'GI', t: 1.2, w: 1219, l: 0, weight: 15000, location: 'A-1' },
+            { id: 2, client: 'LG전자', type: '스켈프', spec: 'EGI', t: 0.8, w: 500, l: 0, weight: 5000, location: 'B-2' },
+            { id: 3, client: '삼성전자', type: '시트', spec: 'HGI', t: 2.0, w: 1000, l: 2000, weight: 2000, location: 'C-1' },
+        ];
+
+        const App = () => {
+            const [inventory, setInventory] = useState(INITIAL_DATA);
+            const [view, setView] = useState('dashboard'); // dashboard, list
+            const [selectedClient, setSelectedClient] = useState('ALL');
+            const [searchTerm, setSearchTerm] = useState('');
+
+            // 고유 업체 목록 추출
+            const clients = useMemo(() => ['ALL', ...new Set(inventory.map(item => item.client))], [inventory]);
+
+            // 필터링된 데이터
+            const filteredData = useMemo(() => {
+                return inventory.filter(item => {
+                    const matchClient = selectedClient === 'ALL' || item.client === selectedClient;
+                    const matchSearch = item.spec.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                      item.type.includes(searchTerm);
+                    return matchClient && matchSearch;
+                });
+            }, [inventory, selectedClient, searchTerm]);
+
+            // 통계 계산
+            const stats = useMemo(() => {
+                const totalWeight = filteredData.reduce((acc, cur) => acc + cur.weight, 0);
+                const count = filteredData.length;
+                const byType = { '원코일': 0, '스켈프': 0, '시트': 0 };
+                filteredData.forEach(item => {
+                    if (byType[item.type] !== undefined) byType[item.type] += item.weight;
+                });
+                return { totalWeight, count, byType };
+            }, [filteredData]);
+
+            // 엑셀 업로드 핸들러
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const bstr = evt.target.result;
+                    const wb = XLSX.read(bstr, { type: 'binary' });
+                    const wsname = wb.SheetNames[0];
+                    const ws = wb.Sheets[wsname];
+                    const data = XLSX.utils.sheet_to_json(ws);
+
+                    // 데이터 처리 및 자동 분류 로직
+                    const processedData = data.map((row, idx) => {
+                        let type = '미분류';
+                        // 3. 철강 분류 로직 (예시: W가 1000 이상이고 L이 없으면 원코일 등)
+                        // 실제 엑셀 컬럼명에 맞춰 수정 필요 (현재는 가정)
+                        const w = Number(row.Width || row.W || 0);
+                        const l = Number(row.Length || row.L || 0);
+                        
+                        if (l > 0) type = '시트';
+                        else if (w >= 600) type = '원코일'; // 기준 폭 예시
+                        else type = '스켈프';
+
+                        return {
+                            id: Date.now() + idx,
+                            client: row.Client || row.Vendor || '미지정',
+                            type: type,
+                            spec: row.Spec || 'No Spec',
+                            t: Number(row.Thickness || row.T || 0),
+                            w: w,
+                            l: l,
+                            weight: Number(row.Weight || 0),
+                            location: row.Location || '입고대기'
+                        };
+                    });
+
+                    setInventory(prev => [...processedData, ...prev]);
+                    alert(`${processedData.length}건의 데이터가 로드되었습니다.`);
+                };
+                reader.readAsBinaryString(file);
+            };
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* 사이드바 */}
+                    <aside className="w-64 sidebar-bg text-white flex-shrink-0 flex flex-col">
+                        <div className="p-6">
+                            <h1 className="text-2xl font-bold tracking-tighter">DAEWOONG S&T</h1>
+                            <p className="text-xs text-slate-400 mt-1">Steel Management System</p>
+                        </div>
+                        <nav className="flex-1 px-4 space-y-2">
+                            <button onClick={() => setView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                <Icon name="layout-dashboard" /> 대시보드
+                            </button>
+                            <button onClick={() => setView('list')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${view === 'list' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                <Icon name="package" /> 재고 목록
+                            </button>
+                        </nav>
+                        <div className="p-6 border-t border-slate-700">
+                            <div className="bg-slate-800 p-4 rounded-lg">
+                                <p className="text-xs text-slate-400 mb-2">데이터 업로드 (Excel)</p>
+                                <label className="flex items-center justify
